@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚽ Penalty Shootout</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;background:#1a1a2e}
+canvas{display:block;position:absolute;top:0;left:0}
+
+/* === SCOREBOARD === */
+#scoreboard{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:linear-gradient(180deg,#1a1a2e,#16213e);
+border:2px solid #e94560;border-radius:12px;padding:8px 20px;display:none;min-width:280px;
+box-shadow:0 4px 20px rgba(233,69,96,0.3);z-index:30}
+.sb-teams{display:flex;align-items:center;justify-content:center;gap:12px}
+.sb-name{color:#fff;font-size:14px;font-weight:bold;min-width:50px;text-align:center}
+.sb-score{color:#e94560;font-size:32px;font-weight:900;min-width:28px;text-align:center;transition:transform .3s}
+.sb-score.flash{animation:scoreFlash .5s ease}
+.sb-vs{color:#666;font-size:12px}
+.sb-info{color:#aaa;font-size:11px;text-align:center;margin-top:4px}
+@keyframes scoreFlash{0%{transform:scale(1)}50%{transform:scale(1.5);color:#fff}100%{transform:scale(1)}}
+
+/* === HISTORY === */
+#history{position:fixed;top:75px;right:8px;width:180px;max-height:calc(100% - 90px);
+background:rgba(26,26,46,.92);border:1px solid #333;border-radius:10px;padding:8px;display:none;
+overflow-y:auto;z-index:30;font-size:11px}
+#history h3{color:#e94560;font-size:12px;text-align:center;margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px}
+.h-item{display:flex;align-items:center;gap:5px;padding:3px 5px;margin:2px 0;background:rgba(255,255,255,.05);border-radius:5px;color:#ccc}
+.h-round{color:#e94560;font-weight:bold;min-width:20px;font-size:10px}
+.h-detail{flex:1;font-size:10px;line-height:1.3}
+.h-result{font-size:14px}
+#history::-webkit-scrollbar{width:3px}
+#history::-webkit-scrollbar-thumb{background:#e94560;border-radius:2px}
+
+/* === GOAL ZONE SELECTOR (Modal style - not tiny overlay) === */
+#zone-select{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);
+display:none;align-items:center;justify-content:center;flex-direction:column;z-index:40}
+#zone-select.active{display:flex}
+#zone-select h3{color:#fff;font-size:clamp(14px,3vw,20px);margin-bottom:12px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.zone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px;
+background:rgba(255,255,255,.08);border-radius:12px;border:2px solid rgba(255,255,255,.15)}
+.zone-btn{width:clamp(70px,18vw,110px);height:clamp(50px,10vw,70px);border:2px solid rgba(255,255,255,.2);
+border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:clamp(10px,2.2vw,13px);
+cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;
+text-align:center;line-height:1.2}
+.zone-btn:hover,.zone-btn:active{background:rgba(233,69,96,.4);border-color:#e94560;transform:scale(1.05)}
+
+/* === POWER BAR === */
+#powerbar{position:fixed;left:15px;top:50%;transform:translateY(-50%);width:36px;height:180px;
+background:rgba(0,0,0,.7);border-radius:8px;border:2px solid #555;display:none;overflow:hidden;z-index:35}
+#powerbar-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#2ecc71,#f1c40f,#e74c3c);
+border-radius:0 0 6px 6px}
+#powerbar-label{position:absolute;top:-22px;left:50%;transform:translateX(-50%);color:#fff;
+font-size:10px;font-weight:bold;white-space:nowrap}
+
+/* === INSTRUCTION === */
+#instruction{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);color:#fff;
+font-size:clamp(11px,2.5vw,15px);background:rgba(0,0,0,.65);padding:7px 18px;border-radius:18px;
+display:none;z-index:35;white-space:nowrap}
+
+/* === GAME MESSAGE === */
+#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;
+font-size:clamp(22px,5vw,44px);font-weight:900;text-shadow:0 0 30px rgba(0,0,0,.8);
+display:none;z-index:45;text-align:center;pointer-events:none}
+
+/* === START SCREEN === */
+#start{position:fixed;top:0;left:0;width:100%;height:100%;
+background:linear-gradient(135deg,#0f3460,#1a1a2e,#16213e);display:flex;flex-direction:column;
+align-items:center;justify-content:center;z-index:100}
+#start h1{color:#fff;font-size:clamp(26px,6vw,56px);text-shadow:0 0 30px #e94560;margin-bottom:8px;animation:pulse 2s ease infinite}
+#start .sub{color:#aaa;font-size:clamp(11px,2.5vw,16px);margin-bottom:25px}
+#start .info{color:#888;font-size:clamp(10px,2vw,13px);max-width:380px;text-align:center;margin-bottom:25px;line-height:1.6}
+#start button{background:linear-gradient(135deg,#e94560,#c23152);color:#fff;border:none;
+padding:14px 45px;font-size:clamp(16px,4vw,26px);font-weight:900;border-radius:50px;cursor:pointer;
+animation:btnPulse 1.5s ease infinite;letter-spacing:2px;box-shadow:0 0 25px rgba(233,69,96,.5)}
+#start button:hover{transform:scale(1.05);box-shadow:0 0 45px rgba(233,69,96,.8)}
+@keyframes pulse{0%,100%{text-shadow:0 0 30px #e94560}50%{text-shadow:0 0 60px #e94560,0 0 90px #c23152}}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 25px rgba(233,69,96,.5)}50%{box-shadow:0 0 45px rgba(233,69,96,.8)}}
+
+/* === DIFFICULTY SCREEN === */
+#diff{position:fixed;top:0;left:0;width:100%;height:100%;
+background:linear-gradient(135deg,#0f3460,#1a1a2e);display:none;flex-direction:column;
+align-items:center;justify-content:center;z-index:99}
+#diff h2{color:#fff;font-size:clamp(18px,4vw,30px);margin-bottom:25px}
+.dc-wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;padding:0 15px}
+.dc{width:clamp(140px,28vw,190px);padding:20px 15px;border-radius:14px;cursor:pointer;text-align:center;
+transition:all .3s;border:2px solid transparent;-webkit-tap-highlight-color:transparent}
+.dc:hover,.dc:active{transform:translateY(-6px)}
+.dc.easy{background:linear-gradient(135deg,#1b4332,#2d6a4f);border-color:#40916c}
+.dc.easy:hover,.dc.easy:active{box-shadow:0 8px 35px rgba(64,145,108,.5)}
+.dc.medium{background:linear-gradient(135deg,#7f4f24,#936639);border-color:#dda15e}
+.dc.medium:hover,.dc.medium:active{box-shadow:0 8px 35px rgba(221,161,94,.5)}
+.dc.hard{background:linear-gradient(135deg,#6a040f,#9d0208);border-color:#e5383b}
+.dc.hard:hover,.dc.hard:active{box-shadow:0 8px 35px rgba(229,56,59,.5)}
+.dc .icon{font-size:36px;margin-bottom:8px}
+.dc .label{color:#fff;font-size:clamp(14px,3vw,18px);font-weight:bold;margin-bottom:4px}
+.dc .desc{color:rgba(255,255,255,.7);font-size:clamp(9px,2vw,11px);line-height:1.4}
+.dc .rate{color:rgba(255,255,255,.5);font-size:10px;margin-top:6px}
+
+/* === END SCREEN === */
+#end{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);
+display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100}
+#end h1{font-size:clamp(26px,6vw,50px);margin-bottom:8px}
+#end .fs{color:#fff;font-size:clamp(16px,4vw,28px);margin-bottom:25px}
+#end button{background:linear-gradient(135deg,#e94560,#c23152);color:#fff;border:none;
+padding:14px 38px;font-size:18px;font-weight:bold;border-radius:50px;cursor:pointer;animation:btnPulse 1.5s ease infinite}
+#end button:hover{transform:scale(1.05)}
+
+/* === SOUND BTN === */
+#snd{position:fixed;bottom:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:1px solid #555;
+border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px;display:flex;align-items:center;
+justify-content:center;z-index:50;-webkit-tap-highlight-color:transparent}
+
+/* === SHAKE === */
+.shake{animation:shake .3s ease}
+@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-3px,2px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,1px)}}
+
+@media(max-width:600px){
+  #scoreboard{min-width:auto;padding:5px 10px}
+  .sb-score{font-size:24px}
+  .sb-name{font-size:12px}
+  #history{width:140px;right:4px;top:68px}
+  #powerbar{left:8px;height:140px;width:28px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<!-- Scoreboard -->
+<div id="scoreboard">
+  <div class="sb-teams">
+    <span class="sb-name">⚽ BÀN THẮNG</span>
+    <span class="sb-score" id="ps">0</span>
+    <span class="sb-vs">/</span>
+    <span class="sb-score" id="cs">5</span>
+  </div>
+  <div class="sb-info" id="ri">Lượt 1/5</div>
+</div>
+
+<!-- History -->
+<div id="history">
+  <h3>📋 LỊCH SỬ</h3>
+  <div id="hlist"></div>
+</div>
+
+<!-- Goal Zone Selector (modal-style, always centered & big) -->
+<div id="zone-select">
+  <h3>🎯 Chọn hướng sút vào khung thành!</h3>
+  <div class="zone-grid">
+    <div class="zone-btn" data-r="0" data-c="0">↖<br>Trái Trên</div>
+    <div class="zone-btn" data-r="0" data-c="1">⬆<br>Giữa Trên</div>
+    <div class="zone-btn" data-r="0" data-c="2">↗<br>Phải Trên</div>
+    <div class="zone-btn" data-r="1" data-c="0">⬅<br>Trái Giữa</div>
+    <div class="zone-btn" data-r="1" data-c="1">⏺<br>Giữa</div>
+    <div class="zone-btn" data-r="1" data-c="2">➡<br>Phải Giữa</div>
+    <div class="zone-btn" data-r="2" data-c="0">↙<br>Trái Dưới</div>
+    <div class="zone-btn" data-r="2" data-c="1">⬇<br>Giữa Dưới</div>
+    <div class="zone-btn" data-r="2" data-c="2">↘<br>Phải Dưới</div>
+  </div>
+</div>
+
+<!-- Power Bar -->
+<div id="powerbar">
+  <div id="powerbar-label">LỰC SÚT</div>
+  <div id="powerbar-fill"></div>
+</div>
+
+<!-- Instruction -->
+<div id="instruction"></div>
+
+<!-- Game Message -->
+<div id="msg"></div>
+
+<!-- Sound -->
+<button id="snd" onclick="toggleSound()">🔊</button>
+
+<!-- Start Screen -->
+<div id="start">
+  <h1>⚽ PENALTY SHOOTOUT</h1>
+  <div class="sub">Đá Penalty - Ai Sẽ Chiến Thắng?</div>
+  <div class="info">
+    🎯 Chọn hướng sút vào khung thành<br>
+    💪 Điều chỉnh lực sút bằng thanh power<br>
+    🏆 Ghi nhiều bàn hơn CPU để chiến thắng!
+  </div>
+  <button onclick="showDiff()">⚡ KICK OFF ⚡</button>
+</div>
+
+<!-- Difficulty Screen -->
+<div id="diff">
+  <h2>🎮 CHỌN ĐỘ KHÓ</h2>
+  <div class="dc-wrap">
+    <div class="dc easy" id="dc-easy">
+      <div class="icon">😊</div>
+      <div class="label">🟢 DỄ</div>
+      <div class="desc">Thủ môn tập sự<br>Mới vào nghề</div>
+      <div class="rate">Cản phá: 30%</div>
+    </div>
+    <div class="dc medium" id="dc-med">
+      <div class="icon">😤</div>
+      <div class="label">🟡 VỪA</div>
+      <div class="desc">Thủ môn chuyên nghiệp<br>Không dễ qua mặt</div>
+      <div class="rate">Cản phá: 60%</div>
+    </div>
+    <div class="dc hard" id="dc-hard">
+      <div class="icon">🧱</div>
+      <div class="label">🔴 KHÓ</div>
+      <div class="desc">Thủ môn huyền thoại<br>Bức tường thép</div>
+      <div class="rate">Cản phá: 90%</div>
+    </div>
+  </div>
+</div>
+
+<!-- End Screen -->
+<div id="end">
+  <h1 id="et"></h1>
+  <div class="fs" id="efs"></div>
+  <button onclick="resetGame()">🔄 CHƠI LẠI</button>
+</div>
+
+<script>
+// ============================================================
+// CANVAS
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// TÍNH TOÁN VỊ TRÍ KHUNG THÀNH (dùng chung cho draw & logic)
+// ============================================================
+// Kích thước thực tế FIFA: goal 7.32m × 2.44m (tỉ lệ 3:1)
+// Cầu thủ ~1.82m (74.5% goal height), Thủ môn ~1.90m (77.9% goal height)
+// Bóng size 5: đường kính 22cm = 12% chiều cao cầu thủ
+function getGoalRect() {
+  const hy = H * 0.4;
+  const fieldH = H - hy;
+  const goalLineY = hy + fieldH * 0.05; // vạch gôn = vạch cuối sân
+  const gw = Math.min(W * 0.30, 500);
+  const gh = gw / 3;                     // tỉ lệ 3:1 đúng thực tế
+  const gx = (W - gw) / 2;
+  return { x: gx, y: goalLineY - gh, w: gw, h: gh, bottom: goalLineY };
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let state = 'start'; // start | diff | playing | powerbar | animating | end
+let difficulty = 0.5;
+let diffLabel = '';
+let pScore = 0;
+let round = 1, maxR = 5;
+let hist = [];
+let soundOn = true;
+
+// Sút
+let chosenZone = null; // {r,c}
+let power = 0, powerDir = 1, powerActive = false;
+
+// Animation
+let anim = 'idle'; // idle | runup | kick | fly | result | celebrate | cry
+let animT = 0;
+let ballX, ballY, ballTX, ballTY, ballSX, ballSY;
+let gkDir = 0, gkProg = 0;
+let isGoal = false;
+let runProg = 0;
+
+// Khán giả
+let specs = [];
+let specExcite = 0;
+
+// Confetti
+let confetti = [];
+
+// ============================================================
+// AUDIO (Web Audio API)
+// ============================================================
+let actx = null;
+function initAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+}
+function sndKick() {
+  if (!soundOn || !actx) return;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.frequency.setValueAtTime(150, actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(50, actx.currentTime + .15);
+    g.gain.setValueAtTime(.5, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01, actx.currentTime + .2);
+    o.start(); o.stop(actx.currentTime + .2);
+  } catch(e) {}
+}
+function sndNet() {
+  if (!soundOn || !actx) return;
+  try {
+    const n = actx.sampleRate * .3, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.exp(-i/(n*.2));
+    const s = actx.createBufferSource(); s.buffer = b;
+    const f = actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800;
+    const g = actx.createGain(); g.gain.value=.3;
+    s.connect(f); f.connect(g); g.connect(actx.destination); s.start();
+  } catch(e) {}
+}
+function sndCheer() {
+  if (!soundOn || !actx) return;
+  try {
+    const n = actx.sampleRate * 1.5, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.sin(Math.PI*i/n) * .3;
+    const s = actx.createBufferSource(); s.buffer = b;
+    const f = actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=.5;
+    const g = actx.createGain(); g.gain.value=.25;
+    s.connect(f); f.connect(g); g.connect(actx.destination); s.start();
+  } catch(e) {}
+}
+function sndWhistle() {
+  if (!soundOn || !actx) return;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    const t = actx.currentTime;
+    o.frequency.setValueAtTime(880,t); o.frequency.setValueAtTime(1100,t+.1); o.frequency.setValueAtTime(880,t+.2);
+    g.gain.setValueAtTime(.2,t); g.gain.setValueAtTime(.2,t+.3);
+    g.gain.exponentialRampToValueAtTime(.01,t+.5);
+    o.start(); o.stop(t+.5);
+  } catch(e) {}
+}
+function sndMiss() {
+  if (!soundOn || !actx) return;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.frequency.setValueAtTime(400,actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(100,actx.currentTime+.4);
+    g.gain.setValueAtTime(.15,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01,actx.currentTime+.4);
+    o.start(); o.stop(actx.currentTime+.4);
+  } catch(e) {}
+}
+function sndSave() {
+  if (!soundOn || !actx) return;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type='square'; o.connect(g); g.connect(actx.destination);
+    o.frequency.setValueAtTime(200,actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(80,actx.currentTime+.15);
+    g.gain.setValueAtTime(.2,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01,actx.currentTime+.15);
+    o.start(); o.stop(actx.currentTime+.15);
+  } catch(e) {}
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('snd').textContent = soundOn ? '🔊' : '🔇';
+}
+
+// ============================================================
+// SPECTATORS
+// ============================================================
+function initSpecs() {
+  specs = [];
+  for (let r = 0; r < 5; r++)
+    for (let c = 0; c < 30; c++)
+      specs.push({
+        r, c,
+        col: `hsl(${Math.random()*360},${60+Math.random()*40}%,${40+Math.random()*30}%)`,
+        ph: Math.random()*Math.PI*2,
+        bj: 2+Math.random()*3
+      });
+}
+initSpecs();
+
+// ============================================================
+// DRAWING
+// ============================================================
+function drawSky() {
+  const g = ctx.createLinearGradient(0,0,0,H*.4);
+  g.addColorStop(0,'#0a1628'); g.addColorStop(.5,'#1a3a5c'); g.addColorStop(1,'#2d6a4f');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H*.45);
+  // Đèn sân
+  for (let s = -1; s <= 1; s+=2) {
+    const lx = W/2+s*W*.35, ly = H*.05;
+    ctx.strokeStyle='#555'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(lx,ly+80); ctx.lineTo(lx,ly); ctx.stroke();
+    const lg = ctx.createRadialGradient(lx,ly,5,lx,ly,100);
+    lg.addColorStop(0,'rgba(255,255,200,.4)'); lg.addColorStop(1,'rgba(255,255,200,0)');
+    ctx.fillStyle=lg; ctx.fillRect(lx-100,ly-50,200,150);
+    ctx.fillStyle='#ffffcc'; ctx.fillRect(lx-10,ly-3,20,6);
+  }
+}
+
+function drawStands() {
+  const st=H*.12, sb=H*.4, sl=W*.1, sr=W*.9;
+  ctx.fillStyle='#2a2a3e';
+  ctx.beginPath(); ctx.moveTo(sl,sb); ctx.lineTo(sl+30,st); ctx.lineTo(sr-30,st); ctx.lineTo(sr,sb); ctx.fill();
+  // Hàng ghế
+  for (let r=0;r<5;r++){const t=r/5,y=st+(sb-st)*(t*.8+.1),xl=sl+30*(1-t)+10,xr=sr-30*(1-t)-10;
+    ctx.fillStyle=`rgba(60,60,80,${.5+t*.3})`; ctx.fillRect(xl,y,xr-xl,3);}
+  // Khán giả
+  const now=Date.now()/1000;
+  specs.forEach(s=>{
+    const t=s.r/5, y0=st+(sb-st)*(t*.8+.1);
+    const xl=sl+30*(1-t)+15, xr=sr-30*(1-t)-15;
+    const x=xl+(xr-xl)*(s.c/30);
+    const wave=Math.sin(now*3+s.ph+s.c*.3)*(2+specExcite*4);
+    const jump=Math.max(0,wave)*s.bj*(.5+specExcite*.5);
+    const hr=3+t*1.5, bh=6+t*3;
+    ctx.fillStyle=s.col; ctx.fillRect(x-hr*.7,y0-bh-jump,hr*1.4,bh);
+    ctx.fillStyle='#ffd5b4'; ctx.beginPath(); ctx.arc(x,y0-bh-hr-jump,hr,0,Math.PI*2); ctx.fill();
+    if(specExcite>.5&&wave>1){
+      ctx.strokeStyle=s.col;ctx.lineWidth=1.5;ctx.beginPath();
+      ctx.moveTo(x-hr,y0-bh-jump);ctx.lineTo(x-hr*2,y0-bh-jump-6);
+      ctx.moveTo(x+hr,y0-bh-jump);ctx.lineTo(x+hr*2,y0-bh-jump-6);ctx.stroke();
+    }
+  });
+}
+
+function drawField() {
+  const hy=H*.4;
+  const fieldH=H-hy;
+  const gg=ctx.createLinearGradient(0,hy,0,H);
+  gg.addColorStop(0,'#1a6b37');gg.addColorStop(.5,'#228b3a');gg.addColorStop(1,'#1a6b37');
+  ctx.fillStyle=gg;ctx.fillRect(0,hy,W,fieldH);
+  ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=2;
+
+  const g = getGoalRect();
+  const goalLineY = g.bottom; // vạch gôn = vạch cuối sân
+
+  // === VẠC CUỐI SÂN (goal line) kéo dài toàn màn hình ===
+  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,goalLineY);ctx.lineTo(W,goalLineY);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=2;
+
+  // === Vạch 16m50 ===
+  const boxTopY=goalLineY;
+  const boxBotY=hy+fieldH*.55;
+
+  // Chiều rộng penalty area tại vạch gôn: dùng tỉ lệ thực
+  // Penalty area 40.32m, goal 7.32m → PA rộng gấp 5.5x goal
+  const paWidthAtGoal = g.w * (40.32/7.32);
+  const boxTopL=W/2-paWidthAtGoal/2, boxTopR=W/2+paWidthAtGoal/2;
+  // Phía dưới (gần người xem) rộng hơn do perspective
+  const perspExpand = 1.8; // hệ số perspective
+  const boxBotL=W/2-paWidthAtGoal/2*perspExpand, boxBotR=W/2+paWidthAtGoal/2*perspExpand;
+
+  // Vẽ vùng 16m50
+  ctx.beginPath();
+  ctx.moveTo(boxBotL,boxBotY);ctx.lineTo(boxTopL,boxTopY);
+  ctx.lineTo(boxTopR,boxTopY);ctx.lineTo(boxBotR,boxBotY);
+  ctx.closePath();ctx.stroke();
+
+  // === Vạch 5m50 (goal area): 5.5m từ vạch gôn, rộng 18.32m ===
+  // Tỉ lệ: 5.5/16.5 = 1/3 chiều sâu penalty area
+  const gaDepthRatio=5.5/16.5;
+  const gaTopY=boxTopY;
+  const gaBotY=boxTopY+(boxBotY-boxTopY)*gaDepthRatio;
+  // Goal area rộng 18.32m, penalty area rộng 40.32m → tỉ lệ 18.32/40.32 ≈ 0.455
+  const gaWidthRatio=18.32/40.32;
+  const gaCenterX=W/2;
+  const gaBotHalfW=(lerp(boxTopR,boxBotR,gaDepthRatio)-lerp(boxTopL,boxBotL,gaDepthRatio))/2*gaWidthRatio;
+  const gaTopHalfW=(boxTopR-boxTopL)/2*gaWidthRatio;
+
+  ctx.beginPath();
+  ctx.moveTo(gaCenterX-gaBotHalfW,gaBotY);ctx.lineTo(gaCenterX-gaTopHalfW,gaTopY);
+  ctx.lineTo(gaCenterX+gaTopHalfW,gaTopY);ctx.lineTo(gaCenterX+gaBotHalfW,gaBotY);
+  ctx.closePath();ctx.stroke();
+
+  // === Chấm penalty: 11m từ vạch gôn ===
+  // Tỉ lệ: 11/16.5 = 2/3 chiều sâu penalty area
+  const spotRatio=11/16.5;
+  const spotY=boxTopY+(boxBotY-boxTopY)*spotRatio;
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(W/2,spotY,4,0,Math.PI*2);ctx.fill();
+
+  // === Vòng cung penalty (the "D") ===
+  // Bán kính 9.15m từ chấm penalty, chỉ vẽ phần nằm ngoài vùng 16m50
+  // Trong perspective: vòng cung nằm phía dưới cạnh dưới penalty area
+  const arcRadius=(boxBotY-spotY)*1.65; // bán kính trên canvas (9.15/5.5 ≈ 1.66)
+  // Tính góc giao với cạnh dưới penalty area
+  const dyArc=boxBotY-spotY;
+  if(arcRadius>dyArc){
+    const arcAngle=Math.asin(dyArc/arcRadius);
+    // Vẽ phần vòng cung nằm ngoài (phía dưới boxBotY)
+    // Trong canvas: sin positive = xuống dưới, arc từ arcAngle đến π-arcAngle
+    ctx.beginPath();
+    ctx.arc(W/2, spotY, arcRadius, arcAngle, Math.PI-arcAngle);
+    ctx.stroke();
+  }
+}
+// Helper: nội suy tuyến tính
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function drawGoal() {
+  const g = getGoalRect();
+  // Lưới
+  ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=.5;
+  for(let i=0;i<=12;i++){const x=g.x+g.w*(i/12);ctx.beginPath();ctx.moveTo(x,g.y);ctx.lineTo(x,g.y+g.h);ctx.stroke();}
+  for(let i=0;i<=6;i++){const y=g.y+g.h*(i/6);ctx.beginPath();ctx.moveTo(g.x,y);ctx.lineTo(g.x+g.w,y);ctx.stroke();}
+  // Cột + xà
+  ctx.strokeStyle='#fff';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(g.x,g.y+g.h);ctx.lineTo(g.x,g.y);ctx.lineTo(g.x+g.w,g.y);ctx.lineTo(g.x+g.w,g.y+g.h);ctx.stroke();
+  // Lưới sau
+  ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=.5;const d=20;
+  ctx.beginPath();
+  ctx.moveTo(g.x-d*.5,g.y-d*.3);ctx.lineTo(g.x+g.w+d*.5,g.y-d*.3);
+  ctx.moveTo(g.x,g.y);ctx.lineTo(g.x-d*.5,g.y-d*.3);
+  ctx.moveTo(g.x+g.w,g.y);ctx.lineTo(g.x+g.w+d*.5,g.y-d*.3);
+  ctx.stroke();
+}
+
+function drawGK(dp, dd) {
+  const g = getGoalRect();
+  // Thủ môn 1.90m = 77.9% chiều cao khung thành (2.44m)
+  // Tổng chiều cao body vẽ = s * 2.45 → s = goalH * 0.779 / 2.45
+  const s = g.h * 0.779 / 2.45;
+  const gkBaseX = W/2;
+  // Chân thủ môn (giày) vẽ tại s*1.8 dưới origin → dịch origin lên để chân chạm vạch gôn
+  const feetOffset = s * 1.8;
+  const gkBaseY = g.bottom - feetOffset;
+  // Bay cản phá: tầm bay = nửa chiều rộng khung thành
+  const diveRange = g.w * 0.45;
+  const diveHeight = g.h * 0.25;
+  ctx.save();
+  ctx.translate(gkBaseX + dd*dp*diveRange, gkBaseY - Math.abs(dp)*diveHeight);
+  if(dp) ctx.rotate(dd*dp*.8);
+  // Áo vàng
+  ctx.fillStyle='#f1c40f';ctx.fillRect(-s*.5,-s*.3,s,s*1.2);
+  // Quần
+  ctx.fillStyle='#222';ctx.fillRect(-s*.4,s*.9,s*.8,s*.5);
+  // Chân
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.35,s*1.4,s*.25,s*.3);ctx.fillRect(s*.1,s*1.4,s*.25,s*.3);
+  // Giày
+  ctx.fillStyle='#111';ctx.fillRect(-s*.38,s*1.65,s*.3,s*.15);ctx.fillRect(s*.08,s*1.65,s*.3,s*.15);
+  // Đầu
+  ctx.fillStyle='#ffd5b4';ctx.beginPath();ctx.arc(0,-s*.6,s*.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.arc(0,-s*.75,s*.35,Math.PI,Math.PI*2);ctx.fill();
+  // Găng tay
+  ctx.fillStyle='#e94560';
+  if(dp){
+    ctx.beginPath();ctx.arc(-s*.7+dd*s*.5,-s*.8,s*.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(s*.7+dd*s*.5,-s*.6,s*.2,0,Math.PI*2);ctx.fill();
+  } else {
+    ctx.beginPath();ctx.arc(-s*.7,-s*.1,s*.15,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(s*.7,-s*.1,s*.15,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#f1c40f';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-s*.5,0);ctx.lineTo(-s*.7,-s*.1);ctx.moveTo(s*.5,0);ctx.lineTo(s*.7,-s*.1);ctx.stroke();
+  }
+  // Số áo
+  ctx.fillStyle='#333';ctx.font=`bold ${s*.5}px Arial`;ctx.textAlign='center';ctx.fillText('1',0,s*.5);
+  ctx.restore();
+}
+
+function drawPlayer(rp, kp) {
+  const hy=H*.4, fh=H-hy;
+  const g = getGoalRect();
+  // Cầu thủ 1.82m = 74.5% goal height, nhân 1.6x perspective (gần camera hơn)
+  // Body tổng = s*2.5 → s = goalH * 0.745 * 1.6 / 2.5
+  const sBase = g.h * 0.745 * 1.6 / 2.5;
+  const boxBot=hy+fh*.55;
+  const spotY=g.bottom+(boxBot-g.bottom)*(11/16.5);
+  const startY=boxBot+fh*.15; // phía sau vùng 16m50
+  const endY=spotY+10; // gần chấm penalty
+  const sc=1.0-rp*.25; // nhỏ dần khi chạy đến gần gôn
+  const px=W/2, py=startY-rp*(startY-endY), s=sBase*sc;
+  ctx.save();ctx.translate(px,py);
+  const ls=rp>0&&rp<1?Math.sin(rp*Math.PI*6)*.3:0;
+  const kl=kp>0?kp*1.2:0;
+  // Quần
+  ctx.fillStyle='#fff';ctx.fillRect(-s*.4,s*.8,s*.8,s*.5);
+  // Chân trái
+  ctx.save();ctx.translate(-s*.2,s*1.3);ctx.rotate(ls);
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.12,0,s*.24,s*.5);
+  ctx.fillStyle='#111';ctx.fillRect(-s*.15,s*.45,s*.3,s*.15);ctx.restore();
+  // Chân phải (sút)
+  ctx.save();ctx.translate(s*.2,s*1.3);ctx.rotate(-ls-kl);
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.12,0,s*.24,s*.5);
+  ctx.fillStyle='#111';ctx.fillRect(-s*.15,s*.45,s*.3,s*.15);ctx.restore();
+  // Áo đỏ
+  ctx.fillStyle='#e74c3c';ctx.fillRect(-s*.45,-s*.2,s*.9,s*1.05);
+  ctx.fillStyle='#fff';ctx.font=`bold ${s*.4}px Arial`;ctx.textAlign='center';ctx.fillText('10',0,s*.45);
+  // Đầu
+  ctx.fillStyle='#ffd5b4';ctx.beginPath();ctx.arc(0,-s*.55,s*.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2c1810';ctx.beginPath();ctx.arc(0,-s*.7,s*.38,Math.PI*.8,Math.PI*2.2);ctx.fill();
+  // Tay
+  ctx.strokeStyle='#ffd5b4';ctx.lineWidth=s*.15;ctx.lineCap='round';
+  const as=rp>0?Math.sin(rp*Math.PI*6)*.4:0;
+  ctx.beginPath();ctx.moveTo(-s*.45,s*.1);ctx.lineTo(-s*.8,s*.3+as*s*.3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s*.45,s*.1);ctx.lineTo(s*.8,s*.3-as*s*.3);ctx.stroke();
+  ctx.restore();
+}
+
+function drawCelebrate(t) {
+  const hy=H*.4, fhC=H-hy, g=getGoalRect(), px=W/2, py=hy+fhC*.55+fhC*.08;
+  const s=g.h*0.745*1.4/2.5;
+  const jump=Math.abs(Math.sin(t*5))*20;
+  ctx.save();ctx.translate(px,py-jump);
+  ctx.fillStyle='#e74c3c';ctx.fillRect(-s*.45,-s*.2,s*.9,s*1.05);
+  ctx.fillStyle='#fff';ctx.fillRect(-s*.4,s*.8,s*.8,s*.5);
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.3,s*1.3,s*.24,s*.4);ctx.fillRect(s*.06,s*1.3,s*.24,s*.4);
+  ctx.fillStyle='#111';ctx.fillRect(-s*.33,s*1.65,s*.3,s*.12);ctx.fillRect(s*.03,s*1.65,s*.3,s*.12);
+  ctx.fillStyle='#ffd5b4';ctx.beginPath();ctx.arc(0,-s*.55,s*.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2c1810';ctx.beginPath();ctx.arc(0,-s*.7,s*.38,Math.PI*.8,Math.PI*2.2);ctx.fill();
+  // Miệng cười
+  ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-s*.4,s*.2,.1,Math.PI-.1);ctx.stroke();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.arc(-s*.15,-s*.6,2,0,Math.PI*2);ctx.arc(s*.15,-s*.6,2,0,Math.PI*2);ctx.fill();
+  // Tay giơ
+  ctx.strokeStyle='#ffd5b4';ctx.lineWidth=s*.15;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-s*.45,s*.1);ctx.lineTo(-s*1,-s*.8-Math.sin(t*8)*5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s*.45,s*.1);ctx.lineTo(s*1,-s*.8+Math.sin(t*8)*5);ctx.stroke();
+  ctx.restore();
+}
+
+function drawCry(t) {
+  const hy=H*.4, fhCr=H-hy, g=getGoalRect(), px=W/2, py=hy+fhCr*.55+fhCr*.08;
+  const s=g.h*0.745*1.4/2.5;
+  ctx.save();ctx.translate(px,py);
+  ctx.fillStyle='#fff';ctx.fillRect(-s*.5,s*.5,s,s*.3);
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.4,s*.8,s*.8,s*.15);
+  ctx.fillStyle='#e74c3c';ctx.fillRect(-s*.45,-s*.3,s*.9,s*.85);
+  ctx.fillStyle='#ffd5b4';ctx.beginPath();ctx.arc(0,-s*.6,s*.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2c1810';ctx.beginPath();ctx.arc(0,-s*.75,s*.38,Math.PI*.8,Math.PI*2.2);ctx.fill();
+  ctx.fillStyle='#ffd5b4';ctx.fillRect(-s*.35,-s*.8,s*.7,s*.3);
+  // Mắt buồn
+  ctx.strokeStyle='#333';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(-s*.12,-s*.55,s*.08,Math.PI,0);ctx.stroke();
+  ctx.beginPath();ctx.arc(s*.12,-s*.55,s*.08,Math.PI,0);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,-s*.3,s*.12,Math.PI+.3,-.3);ctx.stroke();
+  // Nước mắt
+  const td=(t*3)%1;
+  ctx.fillStyle='rgba(100,180,255,.8)';
+  ctx.beginPath();ctx.arc(-s*.12,-s*.45+td*s*.4,2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(s*.12,-s*.45+((t*3+.5)%1)*s*.4,2,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawBall(x,y,r,shadow) {
+  if(shadow){ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+r+5,r*1.2,r*.4,0,0,Math.PI*2);ctx.fill();}
+  const gr=ctx.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r);
+  gr.addColorStop(0,'#fff');gr.addColorStop(.7,'#eee');gr.addColorStop(1,'#ccc');
+  ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#333';const pr=r*.3;ctx.beginPath();
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2-Math.PI/2;const px2=x+Math.cos(a)*pr,py2=y+Math.sin(a)*pr;
+    i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);}ctx.fill();
+}
+
+function drawTrail(fx,fy,tx,ty,p) {
+  if(p<.1)return;
+  ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=3;ctx.setLineDash([5,5]);
+  ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+(tx-fx)*p,fy+(ty-fy)*p);ctx.stroke();ctx.setLineDash([]);
+}
+
+// Confetti
+function drawConf(){confetti.forEach(p=>{ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.4);ctx.restore();});}
+function updateConf(){confetti.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.rot+=p.vr;p.l--;});confetti=confetti.filter(p=>p.l>0);}
+function spawnConf(x,y,n){for(let i=0;i<n;i++)confetti.push({x:x+(Math.random()-.5)*200,y:y-Math.random()*50,vx:(Math.random()-.5)*8,vy:-Math.random()*10-3,s:4+Math.random()*6,c:`hsl(${Math.random()*360},90%,60%)`,rot:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.3,l:100+Math.random()*80});}
+
+// ============================================================
+// ZONE SELECTOR (Modal style - luôn lớn và dễ click)
+// ============================================================
+const zoneEl = document.getElementById('zone-select');
+document.querySelectorAll('.zone-btn').forEach(btn => {
+  function handler(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state !== 'playing') return;
+    const r = parseInt(btn.dataset.r);
+    const c = parseInt(btn.dataset.c);
+    chosenZone = {r, c};
+    zoneEl.classList.remove('active');
+    startPowerBar();
+  }
+  btn.addEventListener('click', handler);
+  btn.addEventListener('touchend', handler);
+});
+
+function showZones() {
+  zoneEl.classList.add('active');
+}
+function hideZones() {
+  zoneEl.classList.remove('active');
+}
+
+// ============================================================
+// POWER BAR
+// ============================================================
+function startPowerBar() {
+  state = 'powerbar';
+  powerActive = true;
+  power = 0; powerDir = 1;
+  document.getElementById('powerbar').style.display = 'block';
+  showInstr('Click hoặc nhấn SPACE để chọn lực sút!');
+}
+
+function updatePower() {
+  if (!powerActive) return;
+  power += powerDir * 2.5;
+  if (power >= 100) { power = 100; powerDir = -1; }
+  if (power <= 0) { power = 0; powerDir = 1; }
+  document.getElementById('powerbar-fill').style.height = power + '%';
+}
+
+function confirmPower() {
+  if (!powerActive) return;
+  powerActive = false;
+  document.getElementById('powerbar').style.display = 'none';
+  hideInstr();
+  executeShot();
+}
+
+// ============================================================
+// SHOT
+// ============================================================
+// Tính vị trí tay thủ môn (găng tay) khi bay cản phá hoàn tất (gkProg=1)
+function getGKHandPos(diveDir) {
+  const g = getGoalRect();
+  const s = g.h * 0.779 / 2.45;
+  const feetOffset = s * 1.8;
+  const diveRange = g.w * 0.45;
+  const diveHeight = g.h * 0.25;
+  const bodyX = W/2 + diveDir * diveRange;
+  const bodyY = (g.bottom - feetOffset) - diveHeight;
+  const rot = diveDir * 0.8;
+  // Tay duỗi hướng bay
+  const handLocalX = -s*.7 + diveDir*s*.5;
+  const handLocalY = -s*.8;
+  const handX = bodyX + handLocalX * Math.cos(rot) - handLocalY * Math.sin(rot);
+  const handY = bodyY + handLocalX * Math.sin(rot) + handLocalY * Math.cos(rot);
+  return {x: handX, y: handY};
+}
+
+let savedBall = false; // true khi thủ môn cản phá (bóng bay đến tay thủ môn)
+let deflectX = 0, deflectY = 0; // vị trí bóng bật ra sau khi bị đẩy
+
+function executeShot() {
+  state = 'animating';
+  anim = 'runup';
+  animT = 0;
+  runProg = 0;
+  savedBall = false;
+
+  initAudio();
+  sndWhistle();
+
+  const g = getGoalRect();
+  const zoneX = g.x + (chosenZone.c + .5) / 3 * g.w;
+  const zoneY = g.y + (chosenZone.r + .5) / 3 * g.h;
+
+  const pw = power / 100;
+  // Bóng ở chấm penalty (11m từ vạch gôn)
+  const hy2 = H*.4, fh2 = H-hy2;
+  const boxBotShot = hy2+fh2*.55;
+  ballSX = W / 2;
+  ballSY = g.bottom + (boxBotShot - g.bottom) * (11/16.5);
+
+  if (pw > .92) {
+    // Quá mạnh → vọt xà
+    ballTX = zoneX + (Math.random()-.5)*30;
+    ballTY = g.y - 30 - Math.random()*20;
+    isGoal = false;
+    gkDir = chosenZone.c===0?-1:chosenZone.c===2?1:0;
+  } else if (pw < .15) {
+    // Quá yếu → bóng lăn chậm về giữa, thủ môn bắt dễ
+    gkDir = 0;
+    isGoal = false;
+    savedBall = true;
+    const hand = getGKHandPos(0);
+    ballTX = hand.x;
+    ballTY = hand.y + 10;
+  } else {
+    const gkCorrect = Math.random() < difficulty;
+    if (gkCorrect) {
+      gkDir = chosenZone.c===0?-1:chosenZone.c===2?1:0;
+      const saveCh = pw<.4?.9:pw<.7?.7:.4;
+      isGoal = Math.random() > saveCh;
+
+      if (!isGoal) {
+        // Thủ môn cản phá thành công → bóng bay đến tay thủ môn
+        savedBall = true;
+        const hand = getGKHandPos(gkDir);
+        ballTX = hand.x;
+        ballTY = hand.y;
+        // Vị trí bóng bật ra (đẩy ra ngoài)
+        deflectX = hand.x + gkDir * 40 + (Math.random()-.5)*20;
+        deflectY = hand.y + 15 + Math.random()*20;
+      } else {
+        // Thủ môn bay đúng hướng nhưng không chạm được (bóng lọt qua)
+        ballTX = zoneX + (Math.random()-.5)*15;
+        ballTY = zoneY + (Math.random()-.5)*10;
+      }
+    } else {
+      // Thủ môn bay sai hướng → bóng vào lưới
+      const wrong = [-1,0,1].filter(d=>{
+        if(chosenZone.c===0)return d!==-1;
+        if(chosenZone.c===2)return d!==1;
+        return d!==0;
+      });
+      gkDir = wrong[Math.floor(Math.random()*wrong.length)];
+      isGoal = true;
+      ballTX = zoneX + (Math.random()-.5)*15;
+      ballTY = zoneY + (Math.random()-.5)*10;
+    }
+  }
+  gkProg = 0;
+}
+
+// ============================================================
+// GAME FLOW
+// ============================================================
+let gameStarted = false;
+
+function showDiff() {
+  document.getElementById('start').style.display = 'none';
+  document.getElementById('diff').style.display = 'flex';
+}
+
+function beginGame(diff) {
+  // Ngăn gọi trùng
+  if (gameStarted) return;
+  gameStarted = true;
+
+  difficulty = diff;
+  diffLabel = diff===.3?'🟢 DỄ':diff===.6?'🟡 VỪA':'🔴 KHÓ';
+
+  document.getElementById('diff').style.display = 'none';
+  document.getElementById('scoreboard').style.display = 'block';
+  document.getElementById('history').style.display = 'block';
+
+  pScore = 0;
+  round = 1;
+  hist = [];
+
+  updateSB();
+  initSpecs();
+  initAudio();
+
+  state = 'playing';
+  anim = 'idle';
+
+  // Hiện zone selector ngay lập tức (modal style, không phụ thuộc canvas position)
+  showZones();
+}
+
+function showInstr(t) { const e=document.getElementById('instruction'); e.textContent=t; e.style.display='block'; }
+function hideInstr() { document.getElementById('instruction').style.display='none'; }
+
+function showMsg(t,dur) {
+  const e=document.getElementById('msg'); e.textContent=t; e.style.display='block';
+  if(dur) setTimeout(()=>{e.style.display='none';}, dur);
+}
+
+function updateSB() {
+  document.getElementById('ps').textContent = pScore;
+  document.getElementById('ri').textContent = `Lượt ${round}/${maxR} | ${diffLabel}`;
+}
+
+function flashScore() {
+  const e = document.getElementById('ps');
+  e.classList.remove('flash');
+  void e.offsetWidth; // force reflow
+  e.classList.add('flash');
+  setTimeout(()=>e.classList.remove('flash'), 500);
+}
+
+function addHist(rnd, dir, gd, result) {
+  const dn={'0,0':'↖Trái-Trên','0,1':'⬆Giữa-Trên','0,2':'↗Phải-Trên',
+    '1,0':'⬅Trái-Giữa','1,1':'⏺Giữa','1,2':'➡Phải-Giữa',
+    '2,0':'↙Trái-Dưới','2,1':'⬇Giữa-Dưới','2,2':'↘Phải-Dưới'};
+  const gdn={'-1':'⬅Trái','0':'⏺Giữa','1':'➡Phải'};
+  const d = dn[dir]||dir, g2 = gdn[String(gd)]||gd;
+  const list = document.getElementById('hlist');
+  const div = document.createElement('div');
+  div.className = 'h-item';
+  div.innerHTML = `<span class="h-round">#${rnd}</span><span class="h-detail">${d}<br>TM:${g2}</span><span class="h-result">${result?'⚽':'❌'}</span>`;
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+}
+
+function afterShot() {
+  addHist(round, `${chosenZone.r},${chosenZone.c}`, gkDir, isGoal);
+  if (isGoal) { pScore++; flashScore(); specExcite=1; sndCheer(); }
+  else { specExcite=.3; sndMiss(); }
+  updateSB();
+
+  // Chuyển sang lượt tiếp hoặc kết thúc
+  setTimeout(checkEnd, 1500);
+}
+
+function checkEnd() {
+  // Thua ngay nếu đã hỏng 3 quả (không thể đạt 3/5 nữa)
+  const missed = round - pScore;
+  if (missed >= 3) {
+    endGame();
+    return;
+  }
+  if (round >= maxR) {
+    endGame();
+    return;
+  }
+  round++;
+  nextRound();
+}
+
+function nextRound() {
+  updateSB();
+  anim='idle'; state='playing';
+  chosenZone=null; gkProg=0; runProg=0;
+  showZones();
+}
+
+function endGame() {
+  state='end';
+  // Thắng nếu ghi ≥ 3/5 bàn
+  const won = pScore >= 3;
+  if(won){anim='celebrate';spawnConf(W/2,H/2,150);sndCheer();specExcite=1;}
+  else{anim='cry';specExcite=.2;sndMiss();}
+  setTimeout(()=>{
+    const e=document.getElementById('end');e.style.display='flex';
+    const t=document.getElementById('et');
+    const f=document.getElementById('efs');
+    if(won){t.innerHTML='🏆 YOU WIN! 🏆';t.style.color='#f1c40f';}
+    else{t.innerHTML='😢 YOU LOSE! 😢';t.style.color='#e74c3c';}
+    f.textContent=`${pScore}/${maxR} bàn thắng`;
+  }, 3000);
+}
+
+function resetGame() {
+  document.getElementById('end').style.display='none';
+  document.getElementById('scoreboard').style.display='none';
+  document.getElementById('history').style.display='none';
+  document.getElementById('hlist').innerHTML='';
+  document.getElementById('msg').style.display='none';
+  document.getElementById('powerbar').style.display='none';
+  hideZones(); hideInstr();
+  confetti=[];anim='idle';state='start';
+  gameStarted = false;
+  document.getElementById('start').style.display='flex';
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+document.addEventListener('keydown', e => {
+  if ((e.code==='Space'||e.code==='Enter') && state==='powerbar') { e.preventDefault(); confirmPower(); }
+});
+canvas.addEventListener('click', ()=>{ if(state==='powerbar') confirmPower(); });
+canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(state==='powerbar') confirmPower(); });
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+let prevTime = -1;
+
+function loop(ts) {
+  // Xử lý frame đầu tiên: tránh dt quá lớn
+  if (prevTime < 0) prevTime = ts;
+  const dt = Math.min((ts - prevTime) / 1000, 0.05); // Cap dt ở 50ms
+  prevTime = ts;
+
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  // Spectator excitement decay
+  if (specExcite > .1) { specExcite -= dt*.3; if(specExcite<.1) specExcite=.1; }
+
+  // Power bar
+  if (state==='powerbar') updatePower();
+
+  // Animation
+  if (state==='animating') {
+    animT += dt;
+    switch(anim) {
+      case 'runup':
+        runProg += dt*1.5;
+        if(runProg>=1){
+          runProg=1; anim='kick'; animT=0;
+          sndKick();
+          canvas.classList.add('shake');
+          setTimeout(()=>canvas.classList.remove('shake'),300);
+        }
+        break;
+      case 'kick':
+        if(animT>.2){anim='fly';animT=0;ballX=ballSX;ballY=ballSY;}
+        break;
+      case 'fly': {
+        const dur=.8, prog=Math.min(animT/dur,1);
+        const ep=1-Math.pow(1-prog,2);
+        ballX=ballSX+(ballTX-ballSX)*ep;
+        const arc=-Math.sin(prog*Math.PI)*80*(power/100);
+        ballY=ballSY+(ballTY-ballSY)*ep+arc;
+        if(prog>.2) gkProg=Math.min((prog-.2)/.6,1);
+        if(prog>=1){
+          anim='result';animT=0;
+          if(isGoal){showMsg('⚽ Vàooo!!! ⚽',1500);sndNet();spawnConf(ballTX,ballTY,30);}
+          else if(power>92) showMsg('💨 Bay vọt xà!',1500);
+          else if(power<15) showMsg('😅 Quá yếu!',1500);
+          else {showMsg('🧤 Thủ môn cản phá!',1500);sndSave();}
+        }
+        break;
+      }
+      case 'result':
+        // Nếu thủ môn cản phá: bóng bật ra khỏi tay sau 0.3s
+        if(savedBall && animT>0.3 && animT<0.5){
+          // Bóng đang bật ra từ tay thủ môn
+          const deflProg=(animT-0.3)/0.2;
+          ballX=ballTX+(deflectX-ballTX)*deflProg;
+          ballY=ballTY+(deflectY-ballTY)*deflProg;
+        }
+        if(animT>2){afterShot();anim='idle';runProg=0;gkProg=0;savedBall=false;}
+        break;
+    }
+  }
+
+  updateConf();
+  if(anim==='celebrate'&&Math.random()<.1) spawnConf(Math.random()*W,0,5);
+}
+
+function render() {
+  ctx.clearRect(0,0,W,H);
+  drawSky();
+  drawStands();
+  drawField();
+  drawGoal();
+
+  const dp=(anim==='fly'||anim==='result')?gkProg:0;
+  drawGK(dp,gkDir);
+
+  // Bóng - kích thước: đường kính 22cm = 12% chiều cao cầu thủ (1.82m)
+  // Tại chấm penalty (gần camera): bóng lớn hơn (perspective)
+  // Tại khung thành (xa camera): bóng nhỏ hơn
+  const gBall = getGoalRect();
+  const gkH = gBall.h * 0.779;        // chiều cao thủ môn trên canvas
+  const ballRGoal = gkH * 0.12 / 2;   // bán kính bóng tại khung thành
+  const ballRSpot = ballRGoal * 1.6;   // bán kính bóng tại chấm penalty (gần camera)
+
+  const hy=H*.4, fhR=H-hy;
+  const penSpotY=gBall.bottom+(hy+fhR*.55-gBall.bottom)*(11/16.5);
+  if(anim==='idle'||anim==='runup'){
+    drawBall(W/2,penSpotY,ballRSpot,true);
+  } else if(anim==='kick'){
+    drawBall(ballSX,ballSY,ballRSpot,true);
+  } else if(anim==='fly'){
+    drawTrail(ballSX,ballSY,ballX,ballY,animT/.8);
+    const p=animT/.8;
+    // Bóng nhỏ dần khi bay xa (từ ballRSpot → ballRGoal)
+    const br=ballRSpot-(ballRSpot-ballRGoal)*p;
+    drawBall(ballX,ballY,Math.max(br,ballRGoal),p<.5);
+  } else if(anim==='result'){
+    if(savedBall){
+      if(animT<0.3) drawBall(ballTX,ballTY,ballRGoal,false);
+      else if(animT<0.5) drawBall(ballX,ballY,ballRGoal,false);
+      else drawBall(deflectX,deflectY,ballRGoal,true);
+    } else {
+      drawBall(ballTX,ballTY,ballRGoal,false);
+    }
+  }
+
+  // Cầu thủ
+  if(anim==='celebrate') drawCelebrate(Date.now()/1000);
+  else if(anim==='cry') drawCry(Date.now()/1000);
+  else { const kp=anim==='kick'?Math.min(animT/.2,1):0; drawPlayer(runProg,kp); }
+
+  drawConf();
+}
+
+// Difficulty card event listeners (dùng JS thay vì inline onclick để tránh double-fire trên mobile)
+[['dc-easy',.3],['dc-med',.6],['dc-hard',.9]].forEach(([id,diff])=>{
+  const el = document.getElementById(id);
+  el.addEventListener('click', (e)=>{ e.preventDefault(); beginGame(diff); });
+});
+
+// Khởi động
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
