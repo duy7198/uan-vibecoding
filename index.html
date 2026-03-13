@@ -40,10 +40,38 @@
   .hidden { display: none; }
   h1, h2, p, div { color: #fff; }
   @media (max-width: 600px) {
-    .slide { padding: 24px 16px; }
-    h1 { font-size: 32px !important; }
-    h2 { font-size: 28px !important; }
-    .cards-row, .roles-row { flex-direction: column; align-items: center; }
+    .slide { padding: 16px 12px; }
+    .slide-inner { max-width: 100%; }
+    h1 { font-size: 28px !important; }
+    h2 { font-size: 24px !important; }
+    p { font-size: 16px !important; }
+    .cards-row, .roles-row { flex-direction: column; align-items: center; gap: 12px !important; }
+    .card { padding: 14px 18px; min-width: auto !important; }
+    .card-icon { font-size: 32px !important; }
+    .card-label { font-size: 15px !important; }
+    .role-card { padding: 16px; max-width: 100%; }
+    .role-title { font-size: 16px !important; }
+    .role-desc { font-size: 14px !important; }
+    .quote { font-size: 15px !important; padding: 12px 16px; }
+    .video-box { padding: 12px 16px; }
+    .step { padding: 10px 14px; gap: 12px; }
+    .step-num { width: 36px; height: 36px; font-size: 15px; }
+    .step-icon { font-size: 22px; }
+    .step-title { font-size: 15px; }
+    .step-desc { font-size: 13px; }
+    .nav { padding: 10px 12px; }
+    .nav button { padding: 8px 14px; font-size: 14px; }
+    .dot { height: 6px; width: 6px; }
+    .dot.active { width: 18px; }
+    [style*="font-size:80px"] { font-size: 48px !important; }
+    [style*="font-size:52px"] { font-size: 28px !important; }
+    [style*="font-size:48px"] { font-size: 28px !important; }
+    [style*="font-size:42px"] { font-size: 26px !important; }
+    [style*="font-size:36px"] { font-size: 24px !important; }
+    [style*="font-size:24px"] { font-size: 18px !important; }
+    [style*="font-size:22px"] { font-size: 17px !important; }
+    [style*="font-size:20px"] { font-size: 16px !important; }
+    [style*="font-size:18px"] { font-size: 15px !important; }
   }
 </style>
 </head>
@@ -205,6 +233,16 @@ function prev() { if (current > 0) { current--; render(); } }
 document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); next(); }
   if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+});
+
+// Touch swipe support for mobile
+let touchStartX = 0;
+let touchEndX = 0;
+slideArea.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+slideArea.addEventListener("touchend", (e) => {
+  touchEndX = e.changedTouches[0].screenX;
+  const diff = touchStartX - touchEndX;
+  if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
 });
 
 render();
