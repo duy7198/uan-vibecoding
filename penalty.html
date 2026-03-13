@@ -896,6 +896,11 @@ function afterShot() {
 }
 
 function checkEnd() {
+  // Thắng ngay nếu ghi đủ 3 bàn
+  if (pScore >= 3) {
+    endGame();
+    return;
+  }
   // Thua ngay nếu đã hỏng 3 quả (không thể đạt 3/5 nữa)
   const missed = round - pScore;
   if (missed >= 3) {
@@ -1054,9 +1059,7 @@ function render() {
   } else if(anim==='fly'){
     drawTrail(ballSX,ballSY,ballX,ballY,animT/.8);
     const p=animT/.8;
-    // Bóng nhỏ dần khi bay xa (từ ballRSpot → ballRGoal)
-    const br=ballRSpot-(ballRSpot-ballRGoal)*p;
-    drawBall(ballX,ballY,Math.max(br,ballRGoal),p<.5);
+    drawBall(ballX,ballY,ballRSpot,p<.5);
   } else if(anim==='result'){
     if(savedBall){
       if(animT<0.3) drawBall(ballTX,ballTY,ballRGoal,false);
