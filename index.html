@@ -22,7 +22,7 @@
   .dot { height: 8px; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; background: #444; width: 8px; }
   .dot.active { background: #f7c948; width: 24px; }
   .footer { background: #111; padding: 4px 24px 8px; text-align: center; color: #555; font-size: 12px; }
-  .card { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 20px 28px; min-width: 140; text-align: center; }
+  .card { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 20px 28px; flex: 1; text-align: center; }
   .card-icon { font-size: 40px; }
   .card-label { font-size: 17px; margin-top: 8px; font-weight: 600; color: #fff; }
   .quote { background: rgba(247,201,72,0.15); border-left: 4px solid #f7c948; padding: 14px 22px; border-radius: 8px; max-width: 560px; margin: 0 auto; font-size: 18px; font-style: italic; text-align: left; color: #fff; }
@@ -46,14 +46,15 @@
     h1 { font-size: 28px !important; }
     h2 { font-size: 24px !important; }
     p { font-size: 16px !important; }
-    .slide { align-items: flex-start; padding: 16px 12px; }
-    .cards-row, .roles-row { flex-direction: column; align-items: stretch; gap: 10px !important; }
-    .card { padding: 10px 14px; min-width: auto !important; }
-    .card-icon { font-size: 28px !important; }
-    .card-label { font-size: 14px !important; }
-    .role-card { padding: 12px 14px; max-width: 100%; display: flex; flex-direction: row; align-items: center; gap: 12px; }
-    .role-icon { font-size: 28px !important; margin-bottom: 0 !important; flex-shrink: 0; }
-    .role-title { font-size: 15px !important; text-align: left !important; margin-bottom: 4px !important; }
+    .slide { align-items: center; padding: 16px 12px; }
+    .cards-row { flex-direction: row; justify-content: center; gap: 10px !important; }
+    .roles-row { flex-direction: column; align-items: stretch; gap: 10px !important; }
+    .card { padding: 8px 10px; min-width: auto !important; flex: 1; }
+    .card-icon { font-size: 24px !important; }
+    .card-label { font-size: 13px !important; }
+    .role-card { padding: 12px 14px; max-width: 100%; flex: none !important; text-align: center; }
+    .role-icon { font-size: 28px !important; margin-bottom: 4px !important; }
+    .role-title { font-size: 15px !important; margin-bottom: 4px !important; }
     .role-desc { font-size: 13px !important; }
     .quote { font-size: 14px !important; padding: 10px 14px; }
     .video-box { padding: 10px 14px; margin-bottom: 12px !important; }
@@ -150,21 +151,17 @@ const slides = [
       <div style="text-align:center">
         <h2 style="font-size:38px;font-weight:700;color:#c084fc;margin:0 0 16px">🎤 Tại sao mình ở đây?</h2>
         <p style="font-size:20px;opacity:0.7;margin:0 0 32px">Chia sẻ kinh nghiệm thực tế</p>
-        <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
-          <div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:24px 28px;text-align:left;display:flex;gap:16px;align-items:center">
-            <div style="font-size:48px">🙅</div>
-            <div>
-              <div style="font-size:20px;font-weight:700;color:#f87171">Chưa từng code ra sản phẩm</div>
-              <div style="font-size:16px;opacity:0.7;margin-top:4px">Mình là QA, không phải developer</div>
-            </div>
+        <div style="max-width:360px;margin:0 auto;display:flex;flex-direction:column;gap:6px">
+          <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:20px 16px;text-align:center">
+            <div style="font-size:32px">🙅</div>
+            <div style="font-size:16px;font-weight:700;color:#f87171;margin-top:4px">Chưa từng code ra sản phẩm</div>
+            <div style="font-size:13px;opacity:0.7;margin-top:2px">Mình là QA, không phải developer</div>
           </div>
-          <div style="font-size:36px;text-align:center">⬇️</div>
-          <div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:24px 28px;text-align:left;display:flex;gap:16px;align-items:center">
-            <div style="font-size:48px">🚀</div>
-            <div>
-              <div style="font-size:20px;font-weight:700;color:#48f7c9">Vẫn Vibe Coding ra sản phẩm</div>
-              <div style="font-size:16px;opacity:0.7;margin-top:4px">Phục vụ nhu cầu cá nhân, bằng AI</div>
-            </div>
+          <div style="font-size:24px;text-align:center">⬇️</div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:20px 16px;text-align:center">
+            <div style="font-size:32px">🚀</div>
+            <div style="font-size:16px;font-weight:700;color:#48f7c9;margin-top:4px">Vẫn Vibe Coding ra sản phẩm</div>
+            <div style="font-size:13px;opacity:0.7;margin-top:2px">Phục vụ nhu cầu cá nhân, bằng AI</div>
           </div>
         </div>
         <div style="margin-top:28px;background:rgba(192,132,252,0.15);border-radius:12px;padding:14px 24px;max-width:480px;margin:28px auto 0;font-size:19px;font-weight:600">
